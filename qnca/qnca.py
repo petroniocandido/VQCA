@@ -16,6 +16,7 @@ class QNCA(object):
   def __init__(self,**kwargs):
     self.n = kwargs.get('n',0)
     self.initial = kwargs.get('initial',None)
+    self.hadamard = kwargs.get('hadamard',False)
     if self.n == 0 and self.initial is not None:
       self.n = len(self.initial)
     elif self.n > 0 and self.initial is None:
@@ -45,6 +46,10 @@ class QNCA(object):
       if self.initial[i]:
         self.qc.x(i)
 
+  def exec_hadamard(self):
+    if self.hadamard:
+        self.qc.h([k for k in range(self.n, 2*self.n)])
+
 
   ###
   # |ψ⟩^t+1 <-- U|ψ⟩^t
@@ -52,6 +57,7 @@ class QNCA(object):
 
   def unitary_operator_21(self):
     for i in self.ix:
+      
       self.qc.cx(i, i+self.n)
       self.qc.crx(self.p[0], (i+1)%self.n, i+self.n)
       self.qc.crx(self.p[1], (i-1)%self.n, i+self.n)
@@ -158,6 +164,8 @@ class QNCA(object):
     self.init()
 
     for t in range(self.T):
+      self.exec_hadamard()
+
       match self.operator:
         case 21:
           self.unitary_operator_21()
@@ -202,7 +210,9 @@ class QNCA(object):
           self.unitary_operator_150()
 
         case 180:
-          self.unitary_operator_180()
+          self.unitary_operator_180()      
+
+      self.exec_hadamard()
 
       for i in self.ix:
 

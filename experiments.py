@@ -11,6 +11,8 @@ dispositivo = 'GPU' if torch.cuda.is_available() else 'CPU'
 
 DIRETORIO_PADRAO = 'D:\\Dropbox\\Projetos\\pessoal\\QNCA\\results\\'
 
+#DIRETORIO_PADRAO = 'C:\\Users\\petro\\Dropbox\\Projetos\\pessoal\\QNCA\\results\\'
+
 #rule1 = [
 #    [0, 0, 0, 1, 0, 0],
 #    [0, 0, 1, 1, 1, 0],
@@ -26,18 +28,18 @@ DIRETORIO_PADRAO = 'D:\\Dropbox\\Projetos\\pessoal\\QNCA\\results\\'
 
 #print(error)
 
-experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCOBYLA, path = DIRETORIO_PADRAO)
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCOBYLA, path = DIRETORIO_PADRAO, hadamard = True)
 experiments.global_training()
 experiments.fine_tunning()
 
-experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, path = DIRETORIO_PADRAO, shots = 100)
-experiments.global_training()
-experiments.fine_tunning(k = 30)
+#experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, path = DIRETORIO_PADRAO, shots = 100)
+#experiments.global_training()
+#experiments.fine_tunning(k = 30)
 
 
-experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO)
-experiments.global_training()
-experiments.fine_tunning()
+#experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO)
+#experiments.global_training()
+#experiments.fine_tunning()
 
 
 
