@@ -8,6 +8,7 @@ import pandas as pd
 import torch
 import json
 import os
+from qnca.operators import get_id
 
 class QNCA(object):
 
@@ -28,7 +29,7 @@ class QNCA(object):
     self.operator = kwargs.get('operator', 18)
     self.p = ParameterVector('ϴ', int(str(self.operator)[:-1]))
     self.ix = list(range(self.n))
-    self.backend = kwargs.get('backend', 18)
+    self.backend = kwargs.get('backend', None)
     self.compiled_circuit = None
     self.final_circuit = None
 
@@ -231,6 +232,91 @@ class QNCA(object):
   def assign_parameters(self, parametros):
     self.final_circuit = self.compiled_circuit.assign_parameters({
       self.p : parametros
+    })
+
+  def logical_circuit(self):
+    return self.qc
+
+  def logical_circuit_shape(self):
+    return (self.qc.num_qubits, self.qc.depth(), self.qc.size())
+
+  def physical_circuit(self):
+    return self.compiled_circuit
+
+  def physical_circuit_shape(self):
+    return (self.qc.num_qubits, self.qc.depth(), self.qc.size())
+
+  def final_circuit(self):
+    return self.final_circuit
+
+
+
+
+class QNCA2(object):
+
+  def __init__(self,**kwargs):
+    self.n = kwargs.get('n',0)
+    self.initial = kwargs.get('initial',None)
+    self.hadamard = kwargs.get('hadamard',False)
+    if self.n == 0 and self.initial is not None:
+      self.n = len(self.initial)
+    elif self.n > 0 and self.initial is None:
+      self.initial = [0 for k in range(self.n)]
+    elif self.n == 0 and self.initial is not None:
+      raise Exception("Or n or initial should be informed!")
+    self.T = kwargs.get('T', 3)
+    self.qc = QuantumCircuit(2*self.n, self.n)
+    self.operator = get_id(self.n, kwargs.get('operator', 18))
+    self.ix = list(range(self.n))
+    self.backend = kwargs.get('backend', None)
+    self.compiled_circuit = None
+    self.final_circuit = None
+
+    self.build_circuit()
+    self.transpile()
+
+    if 'parametros' in kwargs:
+      self.assign_parameters(kwargs['parametros'])
+
+  ###
+  # |ψ⟩^0 = S
+  ###
+  def init(self):
+    for i in range(self.n):
+      if self.initial[i]:
+        self.qc.x(i)
+
+  def exec_hadamard(self):
+    if self.hadamard:
+        self.qc.h([k for k in range(self.n, 2*self.n)])
+  
+  def build_circuit(self):
+    self.init()
+
+    for t in range(self.T):
+      self.exec_hadamard()
+
+      self.operator.apply(self.qc)
+
+      self.exec_hadamard()
+
+      for i in self.ix:
+
+        #|ψ⟩^t <-- |ψ⟩^t+1
+        self.qc.swap(i+self.n, i)
+
+        #|ψ⟩^t+1 <-- |0⟩
+        self.qc.reset(i+self.n)
+
+    self.qc.measure(self.ix, self.ix)
+
+  def transpile(self):
+    self.compiled_circuit = transpile(self.qc, self.backend)
+
+
+  def assign_parameters(self, parametros):
+    self.final_circuit = self.compiled_circuit.assign_parameters({
+      self.operator.p : parametros
     })
 
   def logical_circuit(self):

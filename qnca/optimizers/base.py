@@ -1,6 +1,8 @@
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit_aer import  Aer, AerSimulator
+from qiskit_aer.noise import  NoiseModel
+from qiskit_ibm_runtime.fake_provider import FakeSherbrooke
 from qiskit import transpile
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,7 +15,7 @@ from qnca import ca_patterns
 
 class QNCAOptimizer(object):
   def __init__(self, **kwargs):
-    self.hadamard = kwargs.get('hadamard',False)
+    self.hadamard = kwargs.get('hadamard',False)    
     self.name = None
     self.min_loss = np.inf
     self.best_param = None
@@ -30,10 +32,16 @@ class QNCAOptimizer(object):
     self.num_param = int(str(self.operator)[:-1])
     self.shots = kwargs.get('shots',33)
 
+    self.noise = kwargs.get('noise',False)
+
+    if self.noise:
+      backend = FakeSherbrooke()
+      self.noise_model = NoiseModel.from_backend(backend)
+
     if 'backend' in kwargs:
       self.backend = kwargs['backend']
-    else:
-      self.backend = Aer.get_backend('qasm_simulator', device=self.dispositivo)
+    else:      
+        self.backend = Aer.get_backend('qasm_simulator', device=self.dispositivo)
 
   def clean(self):
     self.loss_history = []
@@ -56,7 +64,10 @@ class QNCAOptimizer(object):
       qc = QNCA(operator = self.operator, initial=self.initial, T = t+1, \
                 backend = self.backend, parametros = parametros, hadamard = self.hadamard)
 
-      job = self.backend.run(qc.final_circuit, shots=self.shots)
+      if self.noise:
+        job = self.backend.run(qc.final_circuit, shots=self.shots, noise_model=self.noise_model)
+      else:
+        job = self.backend.run(qc.final_circuit, shots=self.shots)
       counts = job.result().get_counts()
 
       statistics = {k: {d : 0 for d in ['0','1']} for k in range(self.n)}
@@ -97,9 +108,11 @@ class QNCAGlobalOptimizer(object):
     self.kwargs = kwargs
     self.path = kwargs.get('path', '')
     self.hadamard = kwargs.get('hadamard',False)
-    h = "H" if self.hadamard else ""
-    self.file_path = self.path + "{}{}.json".format(h,optimizer.name)    
-    self.finetunning_file_path = self.path + "{}{}-finetunning.json".format(h, optimizer.name)
+    self.noise = kwargs.get('noise',False)
+    prefix = "N" if self.noise else ""
+    prefix += "H" if self.hadamard else ""
+    self.file_path = self.path + "{}{}.json".format(prefix,optimizer.name)    
+    self.finetunning_file_path = self.path + "{}{}-finetunning.json".format(prefix, optimizer.name)
     self.resume = kwargs.get('resume',True)
     
     self.history = {}
