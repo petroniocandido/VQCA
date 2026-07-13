@@ -28,7 +28,19 @@ DIRETORIO_PADRAO = 'C:\\Users\\petro\\Dropbox\\Projetos\\pessoal\\QNCA\\results\
 
 #error = optm.mse(np.array(rule1))
 
-#print(error)
+print("COBYLA")
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCOBYLA, path = DIRETORIO_PADRAO)
+experiments.global_training()
+experiments.fine_tunning()
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCOBYLA, path = DIRETORIO_PADRAO, hadamard = True)
+experiments.global_training()
+experiments.fine_tunning()
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCOBYLA, path = DIRETORIO_PADRAO, iqp = True)
+experiments.global_training()
+experiments.fine_tunning()
 
 experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCOBYLA, path = DIRETORIO_PADRAO, noise = True)
 experiments.global_training()
@@ -38,6 +50,23 @@ experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCO
 experiments.global_training()
 experiments.fine_tunning()
 
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cobyla.QNCAOptimizerCOBYLA, path = DIRETORIO_PADRAO, iqp = True, noise = True)
+experiments.global_training()
+experiments.fine_tunning()
+
+print("GA")
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, path = DIRETORIO_PADRAO, shots = 100)
+experiments.global_training()
+experiments.fine_tunning(k = 30)
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, path = DIRETORIO_PADRAO, shots = 100, hadamard = True)
+experiments.global_training()
+experiments.fine_tunning(k = 30)
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, path = DIRETORIO_PADRAO, shots = 100, iqp = True)
+experiments.global_training()
+experiments.fine_tunning(k = 30)
 
 experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, path = DIRETORIO_PADRAO, shots = 100, noise = True)
 experiments.global_training()
@@ -47,12 +76,33 @@ experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, pa
 experiments.global_training()
 experiments.fine_tunning(k = 30)
 
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, ga.QNCAOptimizerGA, path = DIRETORIO_PADRAO, shots = 100, iqp = True, noise = True)
+experiments.global_training()
+experiments.fine_tunning(k = 30)
+
+print("CMA")
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO)
+experiments.global_training()
+experiments.fine_tunning()
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO, hadamard = True)
+experiments.global_training()
+experiments.fine_tunning()
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO, iqp = True)
+experiments.global_training()
+experiments.fine_tunning()
 
 experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO, noise = True)
 experiments.global_training()
 experiments.fine_tunning()
 
 experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO, hadamard = True, noise = True)
+experiments.global_training()
+experiments.fine_tunning()
+
+experiments = base.QNCAGlobalOptimizer(ca_patterns.rules, cma.QNCAOptimizerCMA, path = DIRETORIO_PADRAO, iqp = True, noise = True)
 experiments.global_training()
 experiments.fine_tunning()
 

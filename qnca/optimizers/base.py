@@ -12,10 +12,12 @@ import json
 import os
 from qnca.qnca import QNCA
 from qnca import ca_patterns 
+from qnca.operators import VQCAOperator, get_id, operators
 
 class QNCAOptimizer(object):
   def __init__(self, **kwargs):
     self.hadamard = kwargs.get('hadamard',False)    
+    self.iqp = kwargs.get('iqp',False)
     self.name = None
     self.min_loss = np.inf
     self.best_param = None
@@ -29,7 +31,15 @@ class QNCAOptimizer(object):
     self.initial = self.pattern[0,:].tolist()
     self.dispositivo = 'GPU' if torch.cuda.is_available() else 'CPU'
     self.operator = kwargs['operator']
-    self.num_param = int(str(self.operator)[:-1])
+    
+    if isinstance(self.operator, int):
+      self.operator = get_id(self.n, self.operator)
+      self.num_param = self.operator.npar 
+    elif isinstance(self.operator, VQCAOperator):
+      self.num_param = self.operator.npar 
+    else:
+      raise Exception("Operator not informed or type not recognized.")
+    
     self.shots = kwargs.get('shots',33)
 
     self.noise = kwargs.get('noise',False)
@@ -61,7 +71,7 @@ class QNCAOptimizer(object):
     evolution = np.zeros((self.T,self.n))
 
     for t in range(self.T-1):
-      qc = QNCA(operator = self.operator, initial=self.initial, T = t+1, \
+      qc = QNCA(operator = self.operator, initial=self.initial, T = t+1, iqp = self.iqp, \
                 backend = self.backend, parametros = parametros, hadamard = self.hadamard)
 
       if self.noise:
@@ -76,7 +86,8 @@ class QNCAOptimizer(object):
           statistics[ix][d] += count
 
       for i in range(self.n):
-        evolution[t,i] = np.sum([int(k) * v for k,v in statistics[i].items()])/self.shots
+        #evolution[t,i] = np.sum([int(k) * v for k,v in statistics[i].items()])/self.shots
+        evolution[t,i] = statistics[i]['1']/self.shots
 
     return evolution
 
@@ -108,9 +119,13 @@ class QNCAGlobalOptimizer(object):
     self.kwargs = kwargs
     self.path = kwargs.get('path', '')
     self.hadamard = kwargs.get('hadamard',False)
+    self.iqp = kwargs.get('iqp',False)
     self.noise = kwargs.get('noise',False)
     prefix = "N" if self.noise else ""
-    prefix += "H" if self.hadamard else ""
+    if self.iqp:
+      prefix += "I" 
+    elif self.hadamard:
+      prefix += "H"
     self.file_path = self.path + "{}{}.json".format(prefix,optimizer.name)    
     self.finetunning_file_path = self.path + "{}{}-finetunning.json".format(prefix, optimizer.name)
     self.resume = kwargs.get('resume',True)
@@ -133,7 +148,7 @@ class QNCAGlobalOptimizer(object):
       krule = str(rule)
       if not krule in self.history:
         self.history[krule] = {}
-      for operator in [k for k in QNCA.operators if k < 30]:
+      for operator in [k for k in operators.keys() if k < 30]:
         koperator = str(operator)
         if self.resume and koperator in self.history[krule]:
           continue
@@ -156,7 +171,7 @@ class QNCAGlobalOptimizer(object):
       krule = str(rule)
       if not krule in self.history:
         self.history[krule] = {}
-      for operator in QNCA.operators:
+      for operator in operators.keys():
         koperator = str(operator)
         if self.resume and koperator in self.history[krule]:
           continue
@@ -193,7 +208,7 @@ class QNCAGlobalOptimizer(object):
       krule = str(rule)
       if not krule in self.finetunning:
         self.finetunning[krule] = {}
-      for operator in QNCA.operators:
+      for operator in operators.keys():
         koperator = str(operator)
         if self.resume and koperator in self.finetunning[krule]:
           continue
@@ -249,30 +264,30 @@ class QNCAGlobalOptimizer(object):
 
       df = self.parse_dataframe()
       df = df[df['Rule'] == rule]
-      operators = df['Operator'].unique().tolist()
-      df['X'] = [operators.index(k) for k in df['Operator'].values]
+      ops = df['Operator'].unique().tolist()
+      df['X'] = [ops.index(k) for k in df['Operator'].values]
       
       if num_results == 1:        
         ax.bar(df['X'].values, df['MinLoss'].values)
-        ax.set_xticks([k for k in range(len(operators))], operators)
+        ax.set_xticks([k for k in range(len(ops))], ops)
       else:
         ax[0].bar(df['X'].values, df['MinLoss'].values)
-        ax[0].set_xticks([k for k in range(len(operators))], operators)
+        ax[0].set_xticks([k for k in range(len(ops))], ops)
 
         df = self.parse_dataframe_ft()
         df = df[df['Rule'] == rule]
-        operators = df['Operator'].unique().tolist()
-        df['X'] = [operators.index(k) for k in df['Operator'].values]
+        ops = df['Operator'].unique().tolist()
+        df['X'] = [ops.index(k) for k in df['Operator'].values]
 
         ax[1].bar(df['X'].values, df['MinLoss'].values)
-        ax[1].set_xticks([k for k in range(len(operators))], operators)
+        ax[1].set_xticks([k for k in range(len(ops))], ops)
     else:
       df = self.parse_dataframe()
       rules = df['Rule'].unique().tolist()
-      operators = df['Operator'].unique().tolist()
+      ops = df['Operator'].unique().tolist()
 
       df['X'] = [rules.index(k) for k in df['Rule'].values]
-      df['Y'] = [operators.index(k) for k in df['Operator'].values]
+      df['Y'] = [ops.index(k) for k in df['Operator'].values]
       cmin = df['MinLoss'].min()
       cmax = df['MinLoss'].max()
       df['C'] = (df['MinLoss'].values - cmin) / (cmax - cmin)
@@ -280,25 +295,25 @@ class QNCAGlobalOptimizer(object):
       if num_results == 1: 
         ax.scatter(df['X'].values, df['Y'].values, s=df['MinLoss'].values * 50, c = df['MinLoss'].values, cmap='viridis' )
         ax.set_xticks([k for k in range(len(rules))], rules)
-        ax.set_yticks([k for k in range(len(operators))], operators)
+        ax.set_yticks([k for k in range(len(ops))], ops)
       else:
         ax[0].scatter(df['X'].values, df['Y'].values, s=df['MinLoss'].values * 50, c = df['MinLoss'].values, cmap='viridis' )
         ax[0].set_xticks([k for k in range(len(rules))], rules)
-        ax[0].set_yticks([k for k in range(len(operators))], operators)
+        ax[0].set_yticks([k for k in range(len(ops))], ops)
 
         df = self.parse_dataframe_ft()
         rules = df['Rule'].unique().tolist()
-        operators = df['Operator'].unique().tolist()
+        ops = df['Operator'].unique().tolist()
 
         df['X'] = [rules.index(k) for k in df['Rule'].values]
-        df['Y'] = [operators.index(k) for k in df['Operator'].values]
+        df['Y'] = [ops.index(k) for k in df['Operator'].values]
         cmin = df['MinLoss'].min()
         cmax = df['MinLoss'].max()
         df['C'] = (df['MinLoss'].values - cmin) / (cmax - cmin)
 
         ax[1].scatter(df['X'].values, df['Y'].values, s=df['MinLoss'].values * 50, c = df['MinLoss'].values, cmap='viridis' )
         ax[1].set_xticks([k for k in range(len(rules))], rules)
-        ax[1].set_yticks([k for k in range(len(operators))], operators)
+        ax[1].set_yticks([k for k in range(len(ops))], ops)
 
 
         #plt.colorbar()#boundaries=(cmin, cmax))
@@ -359,24 +374,24 @@ class QNCAGlobalOptimizer(object):
 
     elif rule is not None:
       r = ca_patterns.rules[int(rule)]
-      no = len(QNCA.operators)
+      no = len(operators.keys())
       fig, ax = plt.subplots(1,no+1, figsize=(20, 5))
       ax[0].matshow(r, cmap='Greys')
       ax[0].set_title("Pattern {}".format(rule))
-      for ct, op in enumerate(QNCA.operators):
+      for ct, op in enumerate(operators.keys()):
         #print(ct, op)
         self._plot_outputs_axis(ax[ct+1], rule, r, op, ft)
 
     else:
       nr = len(ca_patterns.rules)
-      no = len(QNCA.operators)
+      no = len(operators.keys())
       fig, ax = plt.subplots(nr,no+1, figsize=(20, 2*nr))
 
       for ct1, rule in enumerate(ca_patterns.rules.keys()):
         r = ca_patterns.rules[rule]
         ax[ct1, 0].matshow(r, cmap='Greys')
         ax[ct1, 0].set_title("Pattern {}".format(rule))
-        for ct2, op in enumerate(QNCA.operators):
+        for ct2, op in enumerate(operators.keys()):
           self._plot_outputs_axis(ax[ct1, ct2+1], str(rule), r, op, ft)
    
     plt.tight_layout()
