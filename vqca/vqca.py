@@ -8,10 +8,10 @@ import pandas as pd
 import torch
 import json
 import os
-from qnca.operators import get_id, VQCAOperator
+from vqca.operators import get_id, VQCAOperator
 
 
-class QNCA(object):
+class VQCA(object):
 
   def __init__(self,**kwargs):
     self.n = kwargs.get('n',0)

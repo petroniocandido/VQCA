@@ -1,11 +1,11 @@
 from qiskit_algorithms.optimizers import ADAM
 import numpy as np
-from .base import QNCAOptimizer
+from .base import VQCAOptimizer
 
-class QNCAOptimizerADAM(QNCAOptimizer):
+class VQCAOptimizerADAM(VQCAOptimizer):
   name = 'ADAM'
   def __init__(self, **kwargs):
-    super(QNCAOptimizerADAM, self).__init__(**kwargs)
+    super(VQCAOptimizerADAM, self).__init__(**kwargs)
 
   def training_loop(self, param = None):
 

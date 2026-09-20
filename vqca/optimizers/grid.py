@@ -1,11 +1,11 @@
 import numpy as np
 from itertools import product
-from .base import QNCAOptimizer
+from .base import VQCAOptimizer
 
-class QNCAOptimizerGridSearch(QNCAOptimizer):
+class VQCAOptimizerGridSearch(VQCAOptimizer):
   name = 'GridSearch'
   def __init__(self, **kwargs):
-    super(QNCAOptimizerGridSearch, self).__init__(**kwargs)
+    super(VQCAOptimizerGridSearch, self).__init__(**kwargs)
     self.bins = kwargs.get('bins',10)
 
   def training_loop(self, param = None):

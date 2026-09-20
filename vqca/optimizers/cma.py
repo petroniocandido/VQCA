@@ -1,11 +1,11 @@
 import cma
 import numpy as np
-from .base import QNCAOptimizer
+from .base import VQCAOptimizer
 
-class QNCAOptimizerCMA(QNCAOptimizer):
+class VQCAOptimizerCMA(VQCAOptimizer):
   name = 'CMA'
   def __init__(self, **kwargs):
-    super(QNCAOptimizerCMA, self).__init__(**kwargs)
+    super(VQCAOptimizerCMA, self).__init__(**kwargs)
     self.maxiter = kwargs.get('maxiter', 60)
     self.popsize = kwargs.get('population', 15)
 

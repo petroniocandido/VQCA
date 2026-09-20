@@ -1,11 +1,11 @@
 import numpy as np
 from scipy.optimize import minimize
-from .base import QNCAOptimizer
+from .base import VQCAOptimizer
 
-class QNCAOptimizerCOBYLA(QNCAOptimizer):
+class VQCAOptimizerCOBYLA(VQCAOptimizer):
   name = 'COBYLA'
   def __init__(self, **kwargs):
-    super(QNCAOptimizerCOBYLA, self).__init__(**kwargs)
+    super(VQCAOptimizerCOBYLA, self).__init__(**kwargs)
 
   def training_loop(self, param = None):
     

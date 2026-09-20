@@ -4,12 +4,12 @@ from deap import tools
 import numpy as np
 import random
 
-from .base import QNCAOptimizer
+from .base import VQCAOptimizer
 
-class QNCAOptimizerGA(QNCAOptimizer):
+class VQCAOptimizerGA(VQCAOptimizer):
   name = 'GA'
   def __init__(self, **kwargs):
-    super(QNCAOptimizerGA, self).__init__(**kwargs)
+    super(VQCAOptimizerGA, self).__init__(**kwargs)
     self.no_of_generations = kwargs.get('no_of_generations',20)
     self.population_size = kwargs.get('population_size',30)
     self.probability_of_mutation = 0.3

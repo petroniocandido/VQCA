@@ -10,11 +10,11 @@ import pandas as pd
 import torch
 import json
 import os
-from qnca.qnca import QNCA
-from qnca import ca_patterns 
-from qnca.operators import VQCAOperator, get_id, operators
+from vqca.vqca import VQCA
+from vqca import ca_patterns 
+from vqca.operators import VQCAOperator, get_id, operators
 
-class QNCAOptimizer(object):
+class VQCAOptimizer(object):
   def __init__(self, **kwargs):
     self.hadamard = kwargs.get('hadamard',False)    
     self.iqp = kwargs.get('iqp',False)
@@ -71,7 +71,7 @@ class QNCAOptimizer(object):
     evolution = np.zeros((self.T,self.n))
 
     for t in range(self.T-1):
-      qc = QNCA(operator = self.operator, initial=self.initial, T = t+1, iqp = self.iqp, \
+      qc = VQCA(operator = self.operator, initial=self.initial, T = t+1, iqp = self.iqp, \
                 backend = self.backend, parametros = parametros, hadamard = self.hadamard)
 
       if self.noise:
@@ -112,7 +112,7 @@ class QNCAOptimizer(object):
 
 
 
-class QNCAGlobalOptimizer(object):
+class VQCAGlobalOptimizer(object):
   def __init__(self, patterns, optimizer, **kwargs):
     self.patterns = patterns
     self.optimizer = optimizer
@@ -283,8 +283,8 @@ class QNCAGlobalOptimizer(object):
         ax[1].set_xticks([k for k in range(len(ops))], ops)
     else:
       df = self.parse_dataframe()
-      rules = df['Rule'].unique().tolist()
-      ops = df['Operator'].unique().tolist()
+      rules = sorted(df['Rule'].unique().tolist())
+      ops = sorted(df['Operator'].unique().tolist())
 
       df['X'] = [rules.index(k) for k in df['Rule'].values]
       df['Y'] = [ops.index(k) for k in df['Operator'].values]
@@ -334,7 +334,7 @@ class QNCAGlobalOptimizer(object):
 
     backend = Aer.get_backend('qasm_simulator', device="GPU")
     for t in range(T-1):
-      qc = QNCA(operator = operator, initial=initial, T = t+1, backend = backend, parametros = params)
+      qc = VQCA(operator = operator, initial=initial, T = t+1, backend = backend, parametros = params)
 
       job = backend.run(qc.final_circuit, shots=shots)
       counts = job.result().get_counts()
@@ -378,7 +378,7 @@ class QNCAGlobalOptimizer(object):
       fig, ax = plt.subplots(1,no+1, figsize=(20, 5))
       ax[0].matshow(r, cmap='Greys')
       ax[0].set_title("Pattern {}".format(rule))
-      for ct, op in enumerate(operators.keys()):
+      for ct, op in enumerate(sorted(operators.keys())):
         #print(ct, op)
         self._plot_outputs_axis(ax[ct+1], rule, r, op, ft)
 
@@ -391,7 +391,7 @@ class QNCAGlobalOptimizer(object):
         r = ca_patterns.rules[rule]
         ax[ct1, 0].matshow(r, cmap='Greys')
         ax[ct1, 0].set_title("Pattern {}".format(rule))
-        for ct2, op in enumerate(operators.keys()):
+        for ct2, op in enumerate(sorted(operators.keys())):
           self._plot_outputs_axis(ax[ct1, ct2+1], str(rule), r, op, ft)
    
     plt.tight_layout()

@@ -1,10 +1,13 @@
-pandas
 numpy
+pandas
+scipy
 matplotlib
-qiskit 
+qiskit
 qiskit-aer 
 pylatexenc
 torch
 deap
 cma
 qiskit_algorithms
+qiskit-ibm-runtime
+spsa
