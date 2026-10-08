@@ -1,10 +1,10 @@
 [project]
-name = "qnca"
+name = "vqca"
 version = "0.0.1"
 authors = [
   { name="Petrônio Cândido de Lima e Silva", email="petronio.candido@ifnmg.edu.br" }
 ]
-description = "Quantum Neural Cellular Automata"
+description = "Variational Quantum Cellular Automata"
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -26,8 +26,8 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["qnca*"] 
+include = ["vqca*"] 
 
 [project.urls]
-Homepage = "https://github.com/petroniocandido/QNCA/"
-Issues = "https://github.com/petroniocandido/QNCA/issues"
+Homepage = "https://github.com/petroniocandido/VQCA/"
+Issues = "https://github.com/petroniocandido/VQCA/issues"

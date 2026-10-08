@@ -37,6 +37,7 @@ class VQCA(object):
     self.qc = QuantumCircuit(2*self.n, self.n)
     self.hadamard = kwargs.get('hadamard',False)
     self.iqp = kwargs.get('iqp',False)
+    self.reset  = kwargs.get('reset',False)
 
     self.ix = list(range(self.n))
     self.backend = kwargs.get('backend', None)
@@ -78,8 +79,10 @@ class VQCA(object):
         #|ψ⟩^t <-- |ψ⟩^t+1
         self.qc.swap(i+self.n, i)
 
+        # This breaks the reversibility of the model
         #|ψ⟩^t+1 <-- |0⟩
-        self.qc.reset(i+self.n)
+        if self.reset:
+          self.qc.reset(i+self.n) 
 
     self.qc.measure(self.ix, self.ix)
 

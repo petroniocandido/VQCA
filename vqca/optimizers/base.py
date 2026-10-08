@@ -121,11 +121,16 @@ class VQCAGlobalOptimizer(object):
     self.hadamard = kwargs.get('hadamard',False)
     self.iqp = kwargs.get('iqp',False)
     self.noise = kwargs.get('noise',False)
+    self.reset = kwargs.get('reset',False)
     prefix = "N" if self.noise else ""
     if self.iqp:
       prefix += "I" 
     elif self.hadamard:
       prefix += "H"
+
+    if self.reset:
+      prefix = 'R' + prefix
+
     self.file_path = self.path + "{}{}.json".format(prefix,optimizer.name)    
     self.finetunning_file_path = self.path + "{}{}-finetunning.json".format(prefix, optimizer.name)
     self.resume = kwargs.get('resume',True)
