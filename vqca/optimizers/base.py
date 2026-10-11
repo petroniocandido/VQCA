@@ -13,14 +13,22 @@ import os
 from vqca.vqca import VQCA
 from vqca import ca_patterns 
 from vqca.operators import VQCAOperator, get_id, operators
+from vqca.utils import haar_expressivity
 
 class VQCAOptimizer(object):
+  """
+  VQCA parameter optimization base class.
+  Implements the VQCA circuit optimization for a specific pattern, operator, and other configuration parameters. 
+  This class runs the abstract optimizer and stores the loss and parameters history, and best values.
+  """
   def __init__(self, **kwargs):
     self.hadamard = kwargs.get('hadamard',False)    
     self.iqp = kwargs.get('iqp',False)
+    self.reset = kwargs.get('reset',False)
     self.name = None
     self.min_loss = np.inf
     self.best_param = None
+    self.circuit_statistics = []
     self.loss_history = []
     self.param_history = []
     self.kwargs = kwargs
@@ -56,6 +64,7 @@ class VQCAOptimizer(object):
   def clean(self):
     self.loss_history = []
     self.param_history = []
+    self.circuit_statistics = []
     self.min_loss = np.inf
     self.best_param = None
 
@@ -72,7 +81,7 @@ class VQCAOptimizer(object):
 
     for t in range(self.T-1):
       qc = VQCA(operator = self.operator, initial=self.initial, T = t+1, iqp = self.iqp, \
-                backend = self.backend, parametros = parametros, hadamard = self.hadamard)
+                backend = self.backend, parametros = parametros, hadamard = self.hadamard, reset = self.reset)
 
       if self.noise:
         job = self.backend.run(qc.final_circuit, shots=self.shots, noise_model=self.noise_model)
@@ -102,7 +111,7 @@ class VQCAOptimizer(object):
     return mse
   
 
-  def funcao_custo(self, parametros):   
+  def loss_function(self, parametros):   
 
     out = self.output(parametros)
     error = self.mse(out)
@@ -111,8 +120,44 @@ class VQCAOptimizer(object):
     return error
 
 
+class VQCACircuitStatistics(object):
+  def __init__(self, patterns, **kwargs):
+      self.patterns = patterns
+      self.kwargs = kwargs
+      self.path = kwargs.get('path', '')
+      self.hadamard = kwargs.get('hadamard',False)
+      self.iqp = kwargs.get('iqp',False)
+      self.noise = kwargs.get('noise',False)
+      self.reset = kwargs.get('reset',False)
+      prefix = "N" if self.noise else ""
+      if self.iqp:
+        prefix += "I" 
+      elif self.hadamard:
+        prefix += "H"
+  
+      if self.reset:
+        prefix = 'R' + prefix
+  
+      self.file_path = self.path + "{}statistics.json".format(prefix)    
+      self.resume = kwargs.get('resume',True)
+      
+      self.statistics = {}
+      if self.resume:
+        if os.path.exists(self.file_path):
+          with open(self.file_path, 'r') as file:
+            self.statistics = json.load(file)
+
+  def run(self):
+    for id, operator in operators.items():
+      op = operator()
+    
+
+
 
 class VQCAGlobalOptimizer(object):
+  """
+  Global VQCA circuit optimization, running VQCAOptimizer for all CA patterns and all VQCAOperators and persisting the results in json files.
+  """
   def __init__(self, patterns, optimizer, **kwargs):
     self.patterns = patterns
     self.optimizer = optimizer
@@ -145,8 +190,8 @@ class VQCAGlobalOptimizer(object):
     if os.path.exists(self.finetunning_file_path):
         with open(self.finetunning_file_path, 'r') as file:
           self.finetunning = json.load(file)
-      
-
+  
+  
   def grid_search(self):
     for rule, pattern in self.patterns.items():
       print("\nRULE {}\n".format(rule))
@@ -260,13 +305,22 @@ class VQCAGlobalOptimizer(object):
     fig, ax = plt.subplots(1, num_results, figsize=(10 * num_results, 10 ))
 
     if rule is not None and operator is not None:
-      if num_results == 1:
+      fig.suptitle("Optimization Loss - Rule {} Operator {}".format(rule, operator))
+      if num_results == 1:        
         ax.plot(self.history[rule][operator]['loss_history'])
+        ax.set_xlabel("Iterations")
+        ax.set_ylabel("Loss")
       else:
         ax[0].plot(self.history[rule][operator]['loss_history'])
+        ax[0].set_xlabel("Iterations")
+        ax[0].set_ylabel("Loss")
+        ax[0].set_title("Training")
         ax[1].plot(self.finetunning[rule][operator]['loss_history'])
+        ax[1].set_xlabel("Iterations")
+        ax[1].set_ylabel("Loss")
+        ax[1].set_title("Fine Tunning")
     elif rule is not None and operator is None:
-
+      fig.suptitle("Optimization Min Loss - Rule {}".format(rule))
       df = self.parse_dataframe()
       df = df[df['Rule'] == rule]
       ops = df['Operator'].unique().tolist()
@@ -275,9 +329,14 @@ class VQCAGlobalOptimizer(object):
       if num_results == 1:        
         ax.bar(df['X'].values, df['MinLoss'].values)
         ax.set_xticks([k for k in range(len(ops))], ops)
+        ax.set_xlabel("Operators")
+        ax.set_ylabel("Loss")
       else:
         ax[0].bar(df['X'].values, df['MinLoss'].values)
         ax[0].set_xticks([k for k in range(len(ops))], ops)
+        ax[0].set_xlabel("Operators")
+        ax[0].set_ylabel("Loss")
+        ax[0].set_title("Training")
 
         df = self.parse_dataframe_ft()
         df = df[df['Rule'] == rule]
@@ -286,7 +345,11 @@ class VQCAGlobalOptimizer(object):
 
         ax[1].bar(df['X'].values, df['MinLoss'].values)
         ax[1].set_xticks([k for k in range(len(ops))], ops)
+        ax[1].set_xlabel("Operators")
+        ax[1].set_ylabel("Loss")
+        ax[1].set_title("Fine Tunning")
     else:
+      fig.suptitle("Optimization Min Loss by Rule and Operator")
       df = self.parse_dataframe()
       rules = sorted(df['Rule'].unique().tolist())
       ops = sorted(df['Operator'].unique().tolist())
@@ -301,10 +364,15 @@ class VQCAGlobalOptimizer(object):
         ax.scatter(df['X'].values, df['Y'].values, s=df['MinLoss'].values * 50, c = df['MinLoss'].values, cmap='viridis' )
         ax.set_xticks([k for k in range(len(rules))], rules)
         ax.set_yticks([k for k in range(len(ops))], ops)
+        ax.set_xlabel("Rule")
+        ax.set_ylabel("Operators")        
       else:
         ax[0].scatter(df['X'].values, df['Y'].values, s=df['MinLoss'].values * 50, c = df['MinLoss'].values, cmap='viridis' )
         ax[0].set_xticks([k for k in range(len(rules))], rules)
         ax[0].set_yticks([k for k in range(len(ops))], ops)
+        ax[0].set_xlabel("Rules")
+        ax[0].set_ylabel("Operators")
+        ax[0].set_title("Training")
 
         df = self.parse_dataframe_ft()
         rules = df['Rule'].unique().tolist()
@@ -319,6 +387,9 @@ class VQCAGlobalOptimizer(object):
         ax[1].scatter(df['X'].values, df['Y'].values, s=df['MinLoss'].values * 50, c = df['MinLoss'].values, cmap='viridis' )
         ax[1].set_xticks([k for k in range(len(rules))], rules)
         ax[1].set_yticks([k for k in range(len(ops))], ops)
+        ax[1].set_xlabel("Rules")
+        ax[1].set_ylabel("Operators")
+        ax[1].set_title("Fine Tunning")
 
 
         #plt.colorbar()#boundaries=(cmin, cmax))
@@ -374,6 +445,7 @@ class VQCAGlobalOptimizer(object):
       evol = self.sample(np.array(r), int(operator), np.array(param))
 
       fig, ax = plt.subplots(1,2)
+      fig.suptitle("Operator Outputs Of Best Model - Rule {} Operator {}".format(rule, operator))
       ax[0].matshow(r, cmap='Greys')
       ax[1].matshow(evol, cmap='Greys')
 
@@ -381,6 +453,7 @@ class VQCAGlobalOptimizer(object):
       r = ca_patterns.rules[int(rule)]
       no = len(operators.keys())
       fig, ax = plt.subplots(1,no+1, figsize=(20, 5))
+      fig.suptitle("Operator Outputs Of Best Model - Rule {}".format(rule))
       ax[0].matshow(r, cmap='Greys')
       ax[0].set_title("Pattern {}".format(rule))
       for ct, op in enumerate(sorted(operators.keys())):
@@ -391,6 +464,7 @@ class VQCAGlobalOptimizer(object):
       nr = len(ca_patterns.rules)
       no = len(operators.keys())
       fig, ax = plt.subplots(nr,no+1, figsize=(20, 2*nr))
+      fig.suptitle("Operator Outputs Of Best Model")
 
       for ct1, rule in enumerate(ca_patterns.rules.keys()):
         r = ca_patterns.rules[rule]

@@ -11,7 +11,7 @@ class VQCAOptimizerCOBYLA(VQCAOptimizer):
     
     parametros = np.random.rand(self.num_param) * (2 * np.pi) if param is None else param
 
-    objetivo = lambda x: self.funcao_custo(x)
+    objetivo = lambda x: self.loss_function(x)
 
     # Run classical optimization (e.g., COBYLA or SLSQP)
     result = minimize(objetivo, parametros, method='COBYLA')

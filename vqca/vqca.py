@@ -12,8 +12,25 @@ from vqca.operators import get_id, VQCAOperator
 
 
 class VQCA(object):
+  """Variational Quantum Cellular Automata instance.
+
+   VQCA is a Qiskit parameterized quantum circuit representing an entire quantum cellular automata simulation 
+   with `T` iterations starting from an `initial` configuration and using a specific `operator`circuit for
+   cell state transition.
+
+    Attributes:
+        n (int): Number of cellular automata cells
+        T (int): Number of simulation iterations
+        initial (string): Initial state of the cellular automada
+        operator (VQCAOperator): Cell state transition circuit
+        hadamard (bool): If the hadamard transform should be applied in each cell state transtition circuit
+        iqp (bool): If an iqp preparing should be applied in each cell state transtition circuit
+        reset (bool): If the reset gate should be applied at the end of each iteration.  Attention! This parameter makes the VQCA an irreversible circuit
+        backend (Backend): The Qiskit execution backend.
+    """
 
   def __init__(self,**kwargs):
+
     self.n = kwargs.get('n',0)
     self.initial = kwargs.get('initial',None)    
     
@@ -37,7 +54,7 @@ class VQCA(object):
     self.qc = QuantumCircuit(2*self.n, self.n)
     self.hadamard = kwargs.get('hadamard',False)
     self.iqp = kwargs.get('iqp',False)
-    self.reset  = kwargs.get('reset',False)
+    self.reset  = kwargs.get('reset',False)   # Attention! This parameter makes the VQCA an irreversible circuit
 
     self.ix = list(range(self.n))
     self.backend = kwargs.get('backend', None)
@@ -54,45 +71,71 @@ class VQCA(object):
   # |ψ⟩^0 = S
   ###
   def init(self):
+    """
+    Initial circuit configuration, from |0⟩^2n to initial state |ψ⟩ = S
+    """
     for i in range(self.n):
       if self.initial[i]:
         self.qc.x(i)
 
   def exec_hadamard(self):
+    """
+    Configure the circuit for two special parameters: hadamard and IQP
+    """
     if self.iqp:
       self.qc.h([k for k in range(2*self.n)])
     elif self.hadamard:
         self.qc.h([k for k in range(self.n, 2*self.n)])
   
-  def build_circuit(self):
+  def build_circuit(self, no_measure=False):
+    """
+    Generate the logical circuit, applying all parameters, initial state and iterated transition operators.
+    This is the first phase, followed by transpilation.
+    """
+
+    # Apply initial state
     self.init()
 
     for t in range(self.T):
+      # Apply initial hadamard transform or prepatre IQP circuit, if they are flagged
       self.exec_hadamard()
 
+      # Apply cell state trasition circuits
       self.qc = self.operator.apply(t, self.qc)
 
+      # Apply final hadamard transform or prepatre IQP circuit, if they are flagged
       self.exec_hadamard()
 
       for i in self.ix:
 
+        # Swap ancilla and cell states
         #|ψ⟩^t <-- |ψ⟩^t+1
         self.qc.swap(i+self.n, i)
 
-        # This breaks the reversibility of the model
+        # Attention! This makes the VQCA an irreversible circuit
+        # Apply reset gates in ancillas, if flagged
         #|ψ⟩^t+1 <-- |0⟩
         if self.reset:
           self.qc.reset(i+self.n) 
 
-    self.qc.measure(self.ix, self.ix)
+    # Avoid measurement gates, for fidelity calculations
+    if not no_measure:
+      self.qc.measure(self.ix, self.ix)
 
   def transpile(self):
+    """
+    Transpilation of logical circuit in a physical circuit of the given backend.
+    This is the second phase, preceded by build_circuit and followed by assing_parameters.
+    """
     self.compiled_circuit = transpile(self.qc, self.backend)
 
-
-  def assign_parameters(self, parametros):
+  def assign_parameters(self, parameters):
+    """
+    Prepare the final circuit assigning the PQC parameters.
+    This is the third and final phase, preceded by transpile.
+    """
     self.final_circuit = self.compiled_circuit.assign_parameters({
-      self.operator.p : parametros
+      self.operator.p : parameters
     })
 
   def logical_circuit(self):

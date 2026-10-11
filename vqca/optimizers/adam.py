@@ -13,7 +13,7 @@ class VQCAOptimizerADAM(VQCAOptimizer):
     
     parametros = np.random.rand(self.num_param) * (2 * np.pi) if param is None else param
 
-    objetivo = lambda x: self.funcao_custo(x)
+    objetivo = lambda x: self.loss_function(x)
 
     result = result = optimizer.minimize(fun=objetivo, x0=parametros)
 

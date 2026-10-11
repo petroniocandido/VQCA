@@ -12,7 +12,7 @@ class VQCAOptimizerCMA(VQCAOptimizer):
   def training_loop(self, param = None):
     parametros = [np.pi/2] * self.num_param  if param is None else param
 
-    objetivo = lambda x: self.funcao_custo(x)
+    objetivo = lambda x: self.loss_function(x)
 
     options = {'maxiter': self.maxiter, 'popsize': self.popsize, 'bounds': [0, 2 * np.pi]}
 

@@ -1,3 +1,8 @@
+"""
+Classic Cellular Automata patterns for VQCA assessment.
+The numbers are extracted from Stephen Wolfram's work
+"""
+
 rule1 = [
     [0, 0, 0, 1, 0, 0],
     [0, 0, 1, 0, 1, 0],

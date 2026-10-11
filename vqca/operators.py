@@ -1,3 +1,8 @@
+"""
+Cell State Transition Operators. 
+This module contains the base class VQCAOperator and several operator implementations, and other staff functions.
+"""
+
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 from qiskit_aer import  Aer, AerSimulator
@@ -11,6 +16,16 @@ import os
 
 
 class VQCAOperator(object):
+    """Variational Quantum Cell State Transition Operator.
+
+    VQCAOperator builds and apply a Qiskit parameterized quantum circuit representing the cell state transition function.
+    
+        Attributes:
+            n (int): Number of cellular automata cells
+            npar (int): Number of parameters of the operator            
+            id (int): Unique identifier of the operator
+            p (ParameterVector): The Qiskit parameter set for the parameterized quantum circuit
+        """
     def __init__(self,**kwargs):
         self.n = kwargs.get("n", 1)
         self.npar = kwargs.get("npar", 1)
@@ -275,4 +290,5 @@ def get_id(n, oid):
     id = int(soid[-1])
     npar = int(soid[:-1])
     return get_operator(n, npar, id)
+
 

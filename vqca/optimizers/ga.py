@@ -22,12 +22,12 @@ class VQCAOptimizerGA(VQCAOptimizer):
       self.best_param = list(param)
       print("NEW MIN: {}\t{}".format(self.min_loss, self.best_param))
 
-  def funcao_custo(self, parametros):
-    return [super().funcao_custo(parametros)]
+  def loss_function(self, parametros):
+    return [super().loss_function(parametros)]
 
   def training_loop(self, param = None):
 
-    objetivo = lambda x: self.funcao_custo(x)
+    objetivo = lambda x: self.loss_function(x)
 
     creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 
