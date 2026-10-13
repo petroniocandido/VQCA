@@ -13,9 +13,9 @@ print(dispositivo)
 
 
 
-DIRETORIO_PADRAO = 'D:\\Dropbox\\Projetos\\pessoal\\VQCA\\results\\reset\\'
+#DIRETORIO_PADRAO = 'D:\\Dropbox\\Projetos\\pessoal\\VQCA\\results\\reset\\'
 
-#DIRETORIO_PADRAO = 'C:\\Users\\petro\\Dropbox\\Projetos\\pessoal\\VQCA\\results\\reset\\'
+DIRETORIO_PADRAO = 'C:\\Users\\petro\\Dropbox\\Projetos\\pessoal\\VQCA\\results\\reset\\'
 
 #rule1 = [
 #    [0, 0, 0, 1, 0, 0],
@@ -31,11 +31,11 @@ DIRETORIO_PADRAO = 'D:\\Dropbox\\Projetos\\pessoal\\VQCA\\results\\reset\\'
 #error = optm.mse(np.array(rule1))
 
 
-print("COBYLA")
+print("SPSA")
 
-experiments = base.VQCAGlobalOptimizer(ca_patterns.rules, cobyla.VQCAOptimizerCOBYLA, path = DIRETORIO_PADRAO, iqp = True)
+experiments = base.VQCAGlobalOptimizer(ca_patterns.rules, spsa.VQCAOptimizerSPSA, path = DIRETORIO_PADRAO, iqp = True)
 experiments.global_training()
-experiments.fine_tunning()
+#experiments.fine_tunning()
 
 
 print("GA")

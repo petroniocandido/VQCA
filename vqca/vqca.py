@@ -26,10 +26,27 @@ class VQCA(object):
         hadamard (bool): If the hadamard transform should be applied in each cell state transtition circuit
         iqp (bool): If an iqp preparing should be applied in each cell state transtition circuit
         reset (bool): If the reset gate should be applied at the end of each iteration.  Attention! This parameter makes the VQCA an irreversible circuit
-        backend (Backend): The Qiskit execution backend.
+        backend (qiskit.Backend): The Qiskit execution backend.
+        parameters (numpy.ndarray) : Assign the array of parameters
+        full_reversible (bool) : Don't include irreversible gates (measurement and reset) in the circuit. Default: False
     """
 
   def __init__(self,**kwargs):
+    """
+    Build an VQCA circuit instance.
+
+    Args:
+      n (int): Number of cellular automata cells
+      T (int): Number of simulation iterations
+      initial (string): Initial state of the cellular automada
+      operator (VQCAOperator): Cell state transition circuit
+      hadamard (bool): If the hadamard transform should be applied in each cell state transtition circuit
+      iqp (bool): If an iqp preparing should be applied in each cell state transtition circuit
+      reset (bool): If the reset gate should be applied at the end of each iteration.  Attention! This parameter makes the VQCA an irreversible circuit
+      backend (qiskit.Backend): The Qiskit execution backend.
+      parameters (numpy.ndarray) : Assign the array of parameters
+      full_reversible (bool) : Don't include irreversible gates (measurement and reset) in the circuit. Default: False
+    """
 
     self.n = kwargs.get('n',0)
     self.initial = kwargs.get('initial',None)    
@@ -54,7 +71,10 @@ class VQCA(object):
     self.qc = QuantumCircuit(2*self.n, self.n)
     self.hadamard = kwargs.get('hadamard',False)
     self.iqp = kwargs.get('iqp',False)
-    self.reset  = kwargs.get('reset',False)   # Attention! This parameter makes the VQCA an irreversible circuit
+    self.reset = kwargs.get('reset',False)   # Attention! This parameter makes the VQCA an irreversible circuit
+    self.full_reversible = kwargs.get('full_reversible',False)   
+    if self.full_reversible:
+      self.reset = False
 
     self.ix = list(range(self.n))
     self.backend = kwargs.get('backend', None)
@@ -64,8 +84,8 @@ class VQCA(object):
     self.build_circuit()
     self.transpile()
 
-    if 'parametros' in kwargs:
-      self.assign_parameters(kwargs['parametros'])
+    if 'parameters' in kwargs:
+      self.assign_parameters(kwargs['parameters'])
 
   ###
   # |ψ⟩^0 = S
@@ -87,10 +107,11 @@ class VQCA(object):
     elif self.hadamard:
         self.qc.h([k for k in range(self.n, 2*self.n)])
   
-  def build_circuit(self, no_measure=False):
+  def build_circuit(self):
     """
     Generate the logical circuit, applying all parameters, initial state and iterated transition operators.
     This is the first phase, followed by transpilation.
+
     """
 
     # Apply initial state
@@ -119,7 +140,7 @@ class VQCA(object):
           self.qc.reset(i+self.n) 
 
     # Avoid measurement gates, for fidelity calculations
-    if not no_measure:
+    if not self.full_reversible:
       self.qc.measure(self.ix, self.ix)
 
   def transpile(self):
@@ -133,6 +154,9 @@ class VQCA(object):
     """
     Prepare the final circuit assigning the PQC parameters.
     This is the third and final phase, preceded by transpile.
+
+    Args:
+      parameters (numpy.ndarray) : Arry of parameters values 
     """
     self.final_circuit = self.compiled_circuit.assign_parameters({
       self.operator.p : parameters

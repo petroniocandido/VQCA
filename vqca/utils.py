@@ -4,6 +4,20 @@ from qiskit_aer import AerSimulator
 from scipy.stats import entropy
 
 def haar_expressivity(ansatz : QuantumCircuit, num_samples : int, shots : int = 1024, bins : int =75, random_seed=0, noise = False):
+    """
+    Haar Metric for expressivity of VQA ansatz circuits.
+
+    Args:
+        ansatz (qiskit.QuantumCircuit):
+        num_samples (int): 
+        shots (int) : Default: 1024
+        bins (int) : Default: 75
+        random_seed 9int) : Default : 0
+        noise (bool) : Default: False
+    
+    Returns:
+        float: the haar metric
+    """
 
     # Inicialization
     num_params = ansatz.num_parameters

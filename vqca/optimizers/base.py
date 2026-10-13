@@ -13,18 +13,37 @@ import os
 from vqca.vqca import VQCA
 from vqca import ca_patterns 
 from vqca.operators import VQCAOperator, get_id, operators
+from vqca.estimator import VQCAEstimator
 from vqca.utils import haar_expressivity
 
-class VQCAOptimizer(object):
+class VQCAOptimizer(VQCAEstimator):
   """
   VQCA parameter optimization base class.
   Implements the VQCA circuit optimization for a specific pattern, operator, and other configuration parameters. 
   This class runs the abstract optimizer and stores the loss and parameters history, and best values.
+
+  Attributes:
+    n (int): Number of cellular automata cells
+    T (int): Number of simulation iterations
+    pattern
+    initial (string): Initial state of the cellular automada
+    operator (VQCAOperator): Cell state transition circuit
+    num_param (int)
+    hadamard (bool): If the hadamard transform should be applied in each cell state transtition circuit
+    iqp (bool): If an iqp preparing should be applied in each cell state transtition circuit
+    reset (bool): If the reset gate should be applied at the end of each iteration.  Attention! This parameter makes the VQCA an irreversible circuit
+    noise (bool)
+    shots (int)
+    backend (qiskit.Backend): The Qiskit execution backend.
+    best_param
+    min_loss
+    loss_history
+    param_history
+    noise_model
+    
   """
   def __init__(self, **kwargs):
-    self.hadamard = kwargs.get('hadamard',False)    
-    self.iqp = kwargs.get('iqp',False)
-    self.reset = kwargs.get('reset',False)
+    super(VQCAOptimizer, self).__init__(**kwargs)
     self.name = None
     self.min_loss = np.inf
     self.best_param = None
@@ -37,30 +56,7 @@ class VQCAOptimizer(object):
     self.T = T
     self.n = n
     self.initial = self.pattern[0,:].tolist()
-    self.dispositivo = 'GPU' if torch.cuda.is_available() else 'CPU'
-    self.operator = kwargs['operator']
     
-    if isinstance(self.operator, int):
-      self.operator = get_id(self.n, self.operator)
-      self.num_param = self.operator.npar 
-    elif isinstance(self.operator, VQCAOperator):
-      self.num_param = self.operator.npar 
-    else:
-      raise Exception("Operator not informed or type not recognized.")
-    
-    self.shots = kwargs.get('shots',33)
-
-    self.noise = kwargs.get('noise',False)
-
-    if self.noise:
-      backend = FakeSherbrooke()
-      self.noise_model = NoiseModel.from_backend(backend)
-
-    if 'backend' in kwargs:
-      self.backend = kwargs['backend']
-    else:      
-        self.backend = Aer.get_backend('qasm_simulator', device=self.dispositivo)
-
   def clean(self):
     self.loss_history = []
     self.param_history = []
@@ -76,32 +72,16 @@ class VQCAOptimizer(object):
       self.best_param = param.tolist()
       print("NEW MIN: {}\t{}".format(self.min_loss, self.best_param))
 
-  def output(self, parametros):
-    evolution = np.zeros((self.T,self.n))
-
-    for t in range(self.T-1):
-      qc = VQCA(operator = self.operator, initial=self.initial, T = t+1, iqp = self.iqp, \
-                backend = self.backend, parametros = parametros, hadamard = self.hadamard, reset = self.reset)
-
-      if self.noise:
-        job = self.backend.run(qc.final_circuit, shots=self.shots, noise_model=self.noise_model)
-      else:
-        job = self.backend.run(qc.final_circuit, shots=self.shots)
-      counts = job.result().get_counts()
-
-      statistics = {k: {d : 0 for d in ['0','1']} for k in range(self.n)}
-      for output, count in counts.items():
-        for ix, d in enumerate(reversed(output)):
-          statistics[ix][d] += count
-
-      for i in range(self.n):
-        #evolution[t,i] = np.sum([int(k) * v for k,v in statistics[i].items()])/self.shots
-        evolution[t,i] = statistics[i]['1']/self.shots
-
-    return evolution
-
-
   def mse(self, pattern2):
+    """
+    Mean squared error difference between self.pattern and pattern2
+
+    Args:
+      pattern2: VQCA generated pattern
+
+    Returns:
+      float: mean squared error
+    """
     mse = 0.0
 
     for t in range(self.T-1):
@@ -110,46 +90,44 @@ class VQCAOptimizer(object):
 
     return mse
   
+  def loss_function(self, parameters):   
 
-  def loss_function(self, parametros):   
-
-    out = self.output(parametros)
+    out = self.output(parameters)
     error = self.mse(out)
-    self.log(error, parametros)
+    self.log(error, parameters)
 
     return error
 
+  def training_loop(self, param = None):
+      pass
 
-class VQCACircuitStatistics(object):
-  def __init__(self, patterns, **kwargs):
-      self.patterns = patterns
-      self.kwargs = kwargs
-      self.path = kwargs.get('path', '')
-      self.hadamard = kwargs.get('hadamard',False)
-      self.iqp = kwargs.get('iqp',False)
-      self.noise = kwargs.get('noise',False)
-      self.reset = kwargs.get('reset',False)
-      prefix = "N" if self.noise else ""
-      if self.iqp:
-        prefix += "I" 
-      elif self.hadamard:
-        prefix += "H"
-  
-      if self.reset:
-        prefix = 'R' + prefix
-  
-      self.file_path = self.path + "{}statistics.json".format(prefix)    
-      self.resume = kwargs.get('resume',True)
+
+class VQCACircuitStatistics(VQCAEstimator):
+  def __init__(self, **kwargs):
+    super(VQCACircuitStatistics, self).__init__(**kwargs)
       
-      self.statistics = {}
-      if self.resume:
-        if os.path.exists(self.file_path):
-          with open(self.file_path, 'r') as file:
-            self.statistics = json.load(file)
+    prefix = "N" if self.noise else ""
+    if self.iqp:
+      prefix += "I" 
+    elif self.hadamard:
+      prefix += "H"
+
+    if self.reset:
+      prefix = 'R' + prefix
+
+    self.file_path = self.path + "{}statistics.json".format(prefix)    
+    self.resume = kwargs.get('resume',True)
+    
+    self.statistics = {}
+    if self.resume:
+      if os.path.exists(self.file_path):
+        with open(self.file_path, 'r') as file:
+          self.statistics = json.load(file)
 
   def run(self):
-    for id, operator in operators.items():
-      op = operator()
+    #for id, operator in operators.items():
+    #  op = operator()
+    pass
     
 
 
@@ -195,6 +173,7 @@ class VQCAGlobalOptimizer(object):
   def grid_search(self):
     for rule, pattern in self.patterns.items():
       print("\nRULE {}\n".format(rule))
+      T,n = pattern.shape
       krule = str(rule)
       if not krule in self.history:
         self.history[krule] = {}
@@ -205,7 +184,7 @@ class VQCAGlobalOptimizer(object):
         print("\tOPERATOR {}\n".format(operator))
         self.history[krule][koperator] = {}
 
-        optm = self.optimizer(pattern = np.array(pattern), operator = operator, **self.kwargs)
+        optm = self.optimizer(n = n, T = T, pattern = np.array(pattern), operator = operator, **self.kwargs)
         optm.training_loop()
 
         self.history[krule][koperator]['loss_history'] = optm.loss_history
@@ -217,6 +196,8 @@ class VQCAGlobalOptimizer(object):
   def global_training(self):
 
     for rule, pattern in self.patterns.items():
+      pattern = np.array(pattern)
+      T,n = pattern.shape
       print("\nRULE {}\n".format(rule))
       krule = str(rule)
       if not krule in self.history:
@@ -228,7 +209,7 @@ class VQCAGlobalOptimizer(object):
         print("\tOPERATOR {}\n".format(operator))
         self.history[krule][koperator] = {}
 
-        optm = self.optimizer(pattern = np.array(pattern), operator = operator, **self.kwargs)
+        optm = self.optimizer(n = n, T = T, pattern = pattern, operator = operator, **self.kwargs)
         optm.training_loop()
 
         self.history[krule][koperator]['loss_history'] = optm.loss_history

@@ -20,24 +20,43 @@ class VQCAOperator(object):
 
     VQCAOperator builds and apply a Qiskit parameterized quantum circuit representing the cell state transition function.
     
-        Attributes:
-            n (int): Number of cellular automata cells
-            npar (int): Number of parameters of the operator            
-            id (int): Unique identifier of the operator
-            p (ParameterVector): The Qiskit parameter set for the parameterized quantum circuit
-        """
-    def __init__(self,**kwargs):
+    Attributes:
+        n (int): Number of cellular automata cells
+        npar (int): Number of parameters of the operator            
+        id (int): Unique identifier of the operator
+        p (qiskit.ParameterVector): The Qiskit parameter set for the parameterized quantum circuit
+    """
+    def __init__(self, **kwargs):
         self.n = kwargs.get("n", 1)
         self.npar = kwargs.get("npar", 1)
         self.id = kwargs.get("id", 1)
         self.p = ParameterVector('ϴ', self.npar)
 
     def apply(self, t, qc):
+        """
+        Insert the operator circuit in the general circuit qc
+
+        Args:
+            qc (qiskit.QuantumCircuit) : 
+
+        Returns:
+            qiskit.QuantumCircuit : The modified circuit
+        """
         for i in list(range(self.n)):
             qc = self.circuit(i, qc)
         return qc
     
     def circuit(self, i, qc):
+        """
+        Implement the cell state transition circuit for central cell i inside of VQCA circuit qc
+
+        Args:
+            i (int) : Index of central cell
+            qc (qiskit.QuantumCircuit) : Mother VQCA circuit
+
+        Returns:
+            qiskit.QuantumCircuit : The modified circuit
+        """
         pass
 
     def __str__(self):

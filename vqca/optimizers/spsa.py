@@ -13,12 +13,12 @@ class VQCAOptimizerSPSA(VQCAOptimizer):
     
     parametros = np.random.rand(self.num_param) * (2 * np.pi) if param is None else param
 
-    objetivo = lambda x: self.loss_function(x)
+    objective = lambda x: self.loss_function(x)
 
     # Run classical optimization (e.g., COBYLA or SLSQP)
     #result = spsa.minimize(objetivo, parametros.tolist())
 
-    result = self.spsa.minimize(objetivo, parametros)
+    result = self.spsa.minimize(objective, parametros)
 
     print(result)
 
