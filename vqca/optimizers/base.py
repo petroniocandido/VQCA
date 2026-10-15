@@ -100,37 +100,7 @@ class VQCAOptimizer(VQCAEstimator):
 
   def training_loop(self, param = None):
       pass
-
-
-class VQCACircuitStatistics(VQCAEstimator):
-  def __init__(self, **kwargs):
-    super(VQCACircuitStatistics, self).__init__(**kwargs)
-      
-    prefix = "N" if self.noise else ""
-    if self.iqp:
-      prefix += "I" 
-    elif self.hadamard:
-      prefix += "H"
-
-    if self.reset:
-      prefix = 'R' + prefix
-
-    self.file_path = self.path + "{}statistics.json".format(prefix)    
-    self.resume = kwargs.get('resume',True)
     
-    self.statistics = {}
-    if self.resume:
-      if os.path.exists(self.file_path):
-        with open(self.file_path, 'r') as file:
-          self.statistics = json.load(file)
-
-  def run(self):
-    #for id, operator in operators.items():
-    #  op = operator()
-    pass
-    
-
-
 
 class VQCAGlobalOptimizer(object):
   """
