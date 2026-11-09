@@ -37,8 +37,8 @@ class VQCAEstimator(object):
     self.iqp = kwargs.get('iqp',False)
     self.reset = kwargs.get('reset',False)
     self.kwargs = kwargs
-    self.T = kwargs.get('T',False)
-    self.n = kwargs.get('n',False)
+    self.T = kwargs['T']
+    self.n = kwargs['n']
     self.initial = kwargs.get('initial',[])
     self.device = 'GPU' if torch.cuda.is_available() else 'CPU'
     self.operator = kwargs['operator']

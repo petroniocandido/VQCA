@@ -33,7 +33,7 @@ def haar_expressivity(ansatz : QuantumCircuit, **kwargs):
     
     np.random.seed(random_seed)
 
-    print(ansatz.draw())
+    #print(ansatz.draw())
     
     # Compute-Uncompute Fidelity
     for _ in range(num_samples):

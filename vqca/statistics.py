@@ -22,7 +22,9 @@ class VQCACircuitStatistics(VQCAEstimator):
 
     self.path = kwargs.get('path', '')
 
-    self.initial = ca_patterns.rule1[0]
+    #self.initial = ca_patterns.rule1[0]
+
+    self.initial = [1] * self.n
       
     prefix = "N" if self.noise else ""
     if self.iqp:
@@ -41,6 +43,7 @@ class VQCACircuitStatistics(VQCAEstimator):
       if os.path.exists(self.file_path):
         with open(self.file_path, 'r') as file:
           self.statistics = json.load(file)
+
 
   def run(self):
     for id, operator in operators.items():
@@ -63,6 +66,7 @@ class VQCACircuitStatistics(VQCAEstimator):
       self.statistics[id]["haar"] = haar_expressivity(qc.logical_circuit(),
                                                       num_qubits = self.n*2,
                                                       num_parameters = self.num_param)
+      print(self.statistics[id])
       with open(self.file_path, "w") as outfile:
         json.dump(self.statistics, outfile)
 

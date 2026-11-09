@@ -16,6 +16,6 @@ print(dispositivo)
 DIRETORIO_PADRAO = 'C:\\Users\\petro\\Dropbox\\Projetos\\pessoal\\VQCA\\results\\'
 
 
-stats = VQCACircuitStatistics(n = 6, T = 1, operator = 21, hadamard = True, path = DIRETORIO_PADRAO, seed=47)
+stats = VQCACircuitStatistics(n = 6, T = 2, operator = 21, hadamard = True, path = DIRETORIO_PADRAO, seed=47)
 
 stats.run()

@@ -22,12 +22,12 @@ class VQCAOptimizerGA(VQCAOptimizer):
       self.best_param = list(param)
       print("NEW MIN: {}\t{}".format(self.min_loss, self.best_param))
 
-  def loss_function(self, parametros):
-    return [super().loss_function(parametros)]
+  def loss_function(self, parameters):
+    return [super().loss_function(parameters)]
 
   def training_loop(self, param = None):
 
-    objetivo = lambda x: self.loss_function(x)
+    objective = lambda x: self.loss_function(x)
 
     creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 
@@ -44,9 +44,9 @@ class VQCAOptimizerGA(VQCAOptimizer):
       pop = toolbox.population(n=self.population_size)
 
     else: 
-      pop = [creator.Individual(ind) for ind in param]
+      pop = [creator.Individual(ind) for ind in param] 
 
-    toolbox.register("evaluate", objetivo) # privide the objective function here
+    toolbox.register("evaluate", objective) # privide the objective function here
 
     # registering basic processes using bulit in functions in DEAP
     toolbox.register("mate", tools.cxBlend, alpha=0.7) # strategy for crossover

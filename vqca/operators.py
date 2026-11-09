@@ -294,8 +294,7 @@ class OperatorIQP9(VQCAOperator):
 operators = {
     21 : Operator21, 22 : Operator22, 30 : Operator30, 31 : Operator31, 32 : Operator32, 33 : Operator33, 
     41 : Operator41, 42 : Operator42, 43 : Operator43, 60 : Operator60, 91 : Operator91, 92 : Operator92,
-    120 : Operator120, 150 : Operator150, 180 : Operator180, 61 : OperatorIQP6, 11: OperatorIQP2, 34 : OperatorIQP3,
-    93 : OperatorIQP9
+    120 : Operator120, 150 : Operator150, 180 : Operator180, 61 : OperatorIQP6
 }
 
 

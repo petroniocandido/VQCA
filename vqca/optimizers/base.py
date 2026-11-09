@@ -44,7 +44,6 @@ class VQCAOptimizer(VQCAEstimator):
   """
   def __init__(self, **kwargs):
     super(VQCAOptimizer, self).__init__(**kwargs)
-    self.name = None
     self.min_loss = np.inf
     self.best_param = None
     self.circuit_statistics = []
@@ -115,14 +114,15 @@ class VQCAGlobalOptimizer(object):
     self.iqp = kwargs.get('iqp',False)
     self.noise = kwargs.get('noise',False)
     self.reset = kwargs.get('reset',False)
-    prefix = "N" if self.noise else ""
-    if self.iqp:
+    prefix = "R" if self.reset else ""
+    if self.noise:
+      prefix += 'N'
+    elif self.iqp:
       prefix += "I" 
     elif self.hadamard:
       prefix += "H"
 
-    if self.reset:
-      prefix = 'R' + prefix
+    
 
     self.file_path = self.path + "{}{}.json".format(prefix,optimizer.name)    
     self.finetunning_file_path = self.path + "{}{}-finetunning.json".format(prefix, optimizer.name)
@@ -206,6 +206,8 @@ class VQCAGlobalOptimizer(object):
 
     for rule, pattern in self.patterns.items():
       print("\nRULE {}\n".format(rule))
+      pattern = np.array(pattern)
+      T,n = pattern.shape
       krule = str(rule)
       if not krule in self.finetunning:
         self.finetunning[krule] = {}
@@ -216,7 +218,7 @@ class VQCAGlobalOptimizer(object):
         print("\tOPERATOR {}\n".format(operator))
         self.finetunning[krule][koperator] = {}
 
-        optm = self.optimizer(pattern = np.array(pattern), operator = operator, **self.kwargs)
+        optm = self.optimizer(n = n, T = T, pattern = pattern, operator = operator, **self.kwargs)
         best_perturbed = self.k_perturbed_best(krule, koperator, k)
         optm.training_loop(param = best_perturbed)
 
@@ -250,6 +252,7 @@ class VQCAGlobalOptimizer(object):
   def plot_results(self, **kwargs):
     rule = kwargs.get('rule',None)
     operator = kwargs.get('operator',None)
+    exclude = kwargs.get('exclude',['11','34'])
 
     num_results = 2 if len(self.finetunning) > 0 else 1
 
@@ -301,9 +304,16 @@ class VQCAGlobalOptimizer(object):
         ax[1].set_title("Fine Tunning")
     else:
       fig.suptitle("Optimization Min Loss by Rule and Operator")
+
       df = self.parse_dataframe()
+          
+      for excl in exclude:
+        df = df[(df['Rule'] != excl)]
+        df = df[(df['Operator'] != excl)]
+      
+      
       rules = sorted(df['Rule'].unique().tolist())
-      ops = sorted(df['Operator'].unique().tolist())
+      ops = sorted(df['Operator'].unique().tolist())      
 
       df['X'] = [rules.index(k) for k in df['Rule'].values]
       df['Y'] = [ops.index(k) for k in df['Operator'].values]
@@ -326,8 +336,13 @@ class VQCAGlobalOptimizer(object):
         ax[0].set_title("Training")
 
         df = self.parse_dataframe_ft()
-        rules = df['Rule'].unique().tolist()
-        ops = df['Operator'].unique().tolist()
+                  
+        for excl in exclude:
+          df = df[(df['Rule'] != excl)]
+          df = df[(df['Operator'] != excl)]
+
+        rules = sorted(df['Rule'].unique().tolist())
+        ops = sorted(df['Operator'].unique().tolist()) 
 
         df['X'] = [rules.index(k) for k in df['Rule'].values]
         df['Y'] = [ops.index(k) for k in df['Operator'].values]
@@ -361,7 +376,7 @@ class VQCAGlobalOptimizer(object):
 
     backend = Aer.get_backend('qasm_simulator', device="GPU")
     for t in range(T-1):
-      qc = VQCA(operator = operator, initial=initial, T = t+1, backend = backend, parametros = params)
+      qc = VQCA(operator = operator, initial=initial, T = t+1, backend = backend, parameters = params)
 
       job = backend.run(qc.final_circuit, shots=shots)
       counts = job.result().get_counts()
@@ -385,6 +400,7 @@ class VQCAGlobalOptimizer(object):
   def plot_outputs(self, **kwargs):
     rule = kwargs.get('rule',None)
     operator = kwargs.get('operator',None)
+    exclude = kwargs.get('exclude',['11','34'])
 
     ft = kwargs.get('finetunning', False)
 
